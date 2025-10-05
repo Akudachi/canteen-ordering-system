@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sign Up - Canteen System</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+body {
+    font-family: 'Segoe UI', Tahoma, Verdana, sans-serif;
+    background: linear-gradient(135deg, #ffcccc, #ffe6e6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+.signup-container {
+    background: #fff;
+    width: 360px;
+    border-radius: 12px;
+    box-shadow: 0 6px 25px rgba(0,0,0,0.15);
+    padding: 25px;
+}
+h2 { text-align: center; margin-bottom: 20px; }
+input[type="text"], input[type="email"], input[type="password"], input[type="number"] {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+input:focus { border: 1px solid #ff4d4d; outline: none; }
+button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 12px;
+    background: #ff4d4d;
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+}
+button:hover { background: #e60000; }
+#sendOtpBtn { background: #28a745; margin-top: 5px; }
+#sendOtpBtn:hover { background: #218838; }
+#loginLink { text-align: center; margin-top: 15px; }
+#loginLink a { color: #ff4d4d; text-decoration: none; font-weight: bold; }
+#loginLink a:hover { text-decoration: underline; }
+#errorMsg { color: red; text-align: center; margin-top: 8px; }
+#otpMsg { color: green; text-align: center; margin-top: 5px; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<div class="signup-container">
+    <h2>Student Sign Up</h2>
+    <form id="signupForm">
+        <input type="text" id="name" placeholder="Full Name" required>
+        <input type="email" id="email" placeholder="Email" required>
+        <button type="button" id="sendOtpBtn">Send OTP</button>
+        <div id="otpMsg"></div>
+        <input type="number" id="otpInput" placeholder="Enter OTP" required>
+        <input type="password" id="password" placeholder="Password" required>
+        <button type="submit">Sign Up</button>
+    </form>
+    <div id="loginLink">
+        Already have an account? <a href="login.html">Login</a>
+    </div>
+    <div id="errorMsg"></div>
+</div>
+
+<script>
+const signupForm = document.getElementById("signupForm");
+const errorMsg = document.getElementById("errorMsg");
+const otpMsg = document.getElementById("otpMsg");
+const sendOtpBtn = document.getElementById("sendOtpBtn");
+
+let otpSent = false;
+
+// Send OTP with countdown
+sendOtpBtn.addEventListener("click", async () => {
+    const email = document.getElementById("email").value.trim();
+    if (!email) { errorMsg.textContent = "Enter email first"; return; }
+
+    try {
+        const res = await fetch("/send-otp", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if(res.ok){
+            otpMsg.textContent = "OTP sent ✅";
+            sendOtpBtn.disabled = true;
+            let countdown = 60;
+            const interval = setInterval(() => {
+                sendOtpBtn.textContent = `Resend OTP in ${countdown}s`;
+                countdown--;
+                if(countdown < 0){
+                    clearInterval(interval);
+                    sendOtpBtn.textContent = "Send OTP";
+                    sendOtpBtn.disabled = false;
+                }
+            }, 1000);
+            otpSent = true;
+        } else {
+            errorMsg.textContent = data.msg;
+        }
+    } catch {
+        errorMsg.textContent = "Server error. Try again later.";
+    }
+});
+
+// Signup form submission
+signupForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errorMsg.textContent = "";
+
+    const name = document.getElementById("name").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+    const otp = document.getElementById("otpInput").value.trim();
+
+    if(!otpSent) { errorMsg.textContent = "Please send OTP first"; return; }
+
+    try {
+        // Verify OTP first
+        const otpRes = await fetch("/verify-otp", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ email, otp })
+        });
+        const otpData = await otpRes.json();
+        if(!otpRes.ok){ errorMsg.textContent = otpData.msg; return; }
+
+        // Signup after OTP verified
+        const res = await fetch("/signup", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ name, email, password })
+        });
+        const data = await res.json();
+        if(res.ok){
+            localStorage.setItem("userEmail", email);
+            localStorage.setItem("userName", name);
+            alert("✅ Signup successful! Redirecting to home...");
+            window.location.href = "home.html";
+        } else {
+            errorMsg.textContent = data.msg;
+        }
+    } catch {
+        errorMsg.textContent = "Server error. Try again later.";
+    }
+});
+</script>
+
+</body>
+</html>

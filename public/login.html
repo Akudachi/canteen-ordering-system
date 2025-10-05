@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Login - Canteen System</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+body {
+    font-family: 'Segoe UI', Tahoma, Verdana, sans-serif;
+    background: linear-gradient(135deg, #ffcccc, #ffe6e6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+.login-container {
+    background: #fff;
+    width: 360px;
+    border-radius: 12px;
+    box-shadow: 0 6px 25px rgba(0,0,0,0.15);
+    overflow: hidden;
+    padding: 25px;
+}
+.tab-header {
+    display: flex;
+    margin-bottom: 20px;
+}
+.tab-header div {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    background: #f0f0f0;
+}
+.tab-header .active { background: #ff4d4d; color: #fff; }
+
+input[type="text"], input[type="email"], input[type="password"] {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+input:focus { border: 1px solid #ff4d4d; outline: none; }
+
+button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 12px;
+    background: #ff4d4d;
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+}
+button:hover { background: #e60000; }
+
+.signup {
+    text-align: center;
+    margin-top: 15px;
+    font-size: 14px;
+}
+.signup a { color: #ff4d4d; text-decoration: none; font-weight: bold; }
+.signup a:hover { text-decoration: underline; }
+
+#errorMsg { color: red; text-align: center; margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<div class="login-container">
+    <div class="tab-header">
+        <div id="studentTab" class="active">Student</div>
+        <div id="adminTab">Admin</div>
+    </div>
+    <form id="loginForm">
+        <input type="text" id="name" placeholder="Name (Students only)">
+        <input type="email" id="email" placeholder="Email" required>
+        <input type="password" id="password" placeholder="Password" required>
+        <input type="hidden" id="role" value="student">
+        <button type="submit">Login</button>
+    </form>
+    <div class="signup" id="signupLink">
+        Don't have an account? <a href="signup.html">Sign Up</a>
+    </div>
+    <div id="errorMsg"></div>
+</div>
+
+<script>
+const loginForm = document.getElementById("loginForm");
+const roleInput = document.getElementById("role");
+const studentTab = document.getElementById("studentTab");
+const adminTab = document.getElementById("adminTab");
+const nameInput = document.getElementById("name");
+const errorMsg = document.getElementById("errorMsg");
+
+// Switch tabs
+studentTab.addEventListener("click", () => {
+    roleInput.value = "student";
+    studentTab.classList.add("active");
+    adminTab.classList.remove("active");
+    nameInput.style.display = "block";
+});
+adminTab.addEventListener("click", () => {
+    roleInput.value = "admin";
+    adminTab.classList.add("active");
+    studentTab.classList.remove("active");
+    nameInput.style.display = "none";
+});
+
+// Handle login
+loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+    const role = roleInput.value;
+    const name = nameInput.value.trim();
+
+    try {
+        const res = await fetch("/login", {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({ email, password, role, name })
+        });
+        const data = await res.json();
+        if(res.ok || res.status === 200){
+            if(role === "student"){
+                localStorage.setItem("userEmail", data.email);
+                localStorage.setItem("userName", data.name || name);
+            }
+            window.location.href = data.redirect;
+        } else {
+            errorMsg.textContent = data.msg;
+        }
+    } catch {
+        errorMsg.textContent = "Server error. Try again later.";
+    }
+});
+</script>
+
+</body>
+</html>

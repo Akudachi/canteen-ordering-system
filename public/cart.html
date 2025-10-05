@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Cart - Canteen</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+body { font-family: 'Segoe UI', sans-serif; background: #f8f8f8; margin: 0; padding: 20px; text-align:center; }
+h1{ margin-bottom:20px; }
+.container{ background:#fff; padding:20px; border-radius:12px; max-width:700px; margin:auto; box-shadow:0 6px 20px rgba(0,0,0,0.1); }
+table{ width:100%; border-collapse:collapse; margin-bottom:15px; }
+th, td{ padding:12px; border-bottom:1px solid #eee; }
+th{ background:#ff4d4d; color:#fff; }
+tr:hover{ background:#f9f9f9; }
+button{ padding:10px 16px; border:none; border-radius:6px; cursor:pointer; transition:0.3s; font-size:15px; }
+button.success{ background:#28a745; color:#fff; }
+button.success:hover{ background:#218838; }
+button.danger{ background:#dc3545; color:#fff; }
+button.danger:hover{ background:#c82333; }
+button.menu-btn{ background:#007bff; color:#fff; margin-top:15px; }
+button.menu-btn:hover{ background:#0056b3; }
+#emptyMsg{ text-align:center; color:#777; font-size:16px; margin:20px 0; }
+#qrSection{ margin-top:20px; }
+#qrSection img{ width:200px; height:200px; margin-bottom:10px; }
+#confirmBtn{ margin-top:10px; }
+</style>
+</head>
+<body>
+
+<h1>Your Cart</h1>
+<div class="container">
+    <div id="cartSection">
+        <table id="cartTable">
+            <thead><tr><th>Name</th><th>Price</th><th>Action</th></tr></thead>
+            <tbody></tbody>
+        </table>
+        <h2>Total: ₹<span id="total">0</span></h2>
+        <button class="success" id="checkoutBtn">💳 Pay with UPI</button>
+        <br>
+        <button class="menu-btn" onclick="window.location.href='home.html'">🛒 View Menu</button>
+    </div>
+
+    <div id="qrSection" style="display:none;">
+        <h2>Scan QR to Pay</h2>
+        <img id="qrCode" src="">
+        <br>
+        <button class="success" id="confirmBtn">✅ I Have Paid</button>
+        <br>
+        <button class="menu-btn" onclick="window.location.href='home.html'">🛒 View Menu</button>
+    </div>
+
+    <div id="emptyMsg" style="display:none;">
+        Your cart is empty 🛒<br><br>
+        <button class="menu-btn" onclick="window.location.href='home.html'">🛒 Go to Menu</button>
+    </div>
+</div>
+
+<script>
+let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+const tbody = document.querySelector("#cartTable tbody");
+const userEmail = localStorage.getItem("userEmail");
+if(!userEmail){ window.location.href = "login.html"; }
+
+function renderCart(){
+    tbody.innerHTML="";
+    let total=0;
+    if(cart.length===0){
+        document.getElementById("cartSection").style.display="none";
+        document.getElementById("qrSection").style.display="none";
+        document.getElementById("emptyMsg").style.display="block";
+        return;
+    }
+    document.getElementById("cartSection").style.display="block";
+    document.getElementById("emptyMsg").style.display="none";
+
+    cart.forEach((item,i)=>{
+        total+=item.price;
+        const tr=document.createElement("tr");
+        tr.innerHTML=`
+            <td>${item.name}</td>
+            <td>₹${item.price}</td>
+            <td><button class="danger" onclick="removeItem(${i})">Remove</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+    document.getElementById("total").innerText = total;
+}
+
+function removeItem(i){
+    cart.splice(i,1);
+    localStorage.setItem("cart", JSON.stringify(cart));
+    renderCart();
+}
+
+renderCart();
+
+let currentOrderId = null;
+
+// Checkout - Generate QR
+document.getElementById("checkoutBtn").addEventListener("click", async ()=>{
+    if(cart.length===0){ alert("Cart is empty."); return; }
+    try{
+        const res = await fetch("/order", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({email:userEmail, items:cart})
+        });
+        const data = await res.json();
+        if(res.ok){
+            currentOrderId = data.orderId;
+            document.getElementById("cartSection").style.display="none";
+            document.getElementById("qrSection").style.display="block";
+            document.getElementById("qrCode").src = data.qrCode;
+        } else alert(data.msg || "Error generating QR.");
+    } catch {
+        alert("⚠️ Server error while placing order.");
+    }
+});
+
+// Confirm Payment - Clear cart on confirmation
+document.getElementById("confirmBtn").addEventListener("click", async ()=>{
+    if(!currentOrderId){ alert("No order to confirm."); return; }
+    try{
+        const res = await fetch("/order/confirm", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body: JSON.stringify({ orderId: currentOrderId, email: userEmail })
+        });
+        const data = await res.json();
+        if(res.ok){
+            localStorage.removeItem("cart");
+            alert("✅ Payment confirmed! Redirecting to home page...");
+            window.location.href = data.redirect;
+        } else alert(data.msg || "Payment not confirmed.");
+    } catch {
+        alert("⚠️ Server error while confirming payment.");
+    }
+});
+</script>
+
+</body>
+</html>

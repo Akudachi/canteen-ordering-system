@@ -1,0 +1,208 @@
+/* =========================
+   General Reset & Fonts
+========================= */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background: #f4f6f8;
+    color: #333;
+    line-height: 1.6;
+}
+
+h1, h2, h3 {
+    color: #ff4d4d;
+}
+
+/* =========================
+   Header & Navigation
+========================= */
+header {
+    background: #ff4d4d;
+    color: #fff;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+header h1 {
+    font-size: 26px;
+}
+
+header nav a {
+    color: #fff;
+    margin-left: 20px;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+header nav a:hover {
+    text-decoration: underline;
+    color: #ffe6e6;
+}
+
+/* =========================
+   Container & Cards
+========================= */
+.container {
+    max-width: 1000px;
+    margin: 30px auto;
+    background: #fff;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+}
+
+/* =========================
+   Buttons
+========================= */
+button {
+    cursor: pointer;
+    transition: 0.3s;
+    font-weight: 600;
+    border: none;
+}
+
+button.primary { background: #ff4d4d; color: #fff; padding: 10px 20px; border-radius: 10px; }
+button.primary:hover { background: #e60000; }
+
+button.success { background: #28a745; color: #fff; padding: 8px 16px; border-radius: 8px; }
+button.success:hover { background: #218838; }
+
+button.warning { background: #ffc107; color: #212529; padding: 8px 16px; border-radius: 8px; }
+button.warning:hover { background: #e0a800; }
+
+button.danger { background: #dc3545; color: #fff; padding: 8px 16px; border-radius: 8px; }
+button.danger:hover { background: #c82333; }
+
+/* =========================
+   Inputs
+========================= */
+input[type="text"], input[type="number"], input[type="password"], input[type="email"] {
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    width: 100%;
+    margin-bottom: 15px;
+    font-size: 15px;
+}
+input:focus {
+    outline: none;
+    border-color: #ff4d4d;
+    box-shadow: 0 0 5px rgba(255,77,77,0.5);
+}
+
+/* =========================
+   Forms
+========================= */
+form {
+    margin-top: 20px;
+}
+
+/* =========================
+   Flex Helpers
+========================= */
+.flex { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px; }
+.flex > * { flex: 1 1 150px; }
+
+/* =========================
+   Tables
+========================= */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    font-size: 15px;
+}
+
+th, td {
+    padding: 14px 10px;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+}
+
+th {
+    background: #ff4d4d;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+tr:hover { background: #f9f9f9; }
+
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 13px;
+    display: inline-block;
+}
+
+.status-pending { background:#fff3cd; color:#856404; }
+.status-paid { background:#d1ecf1; color:#0c5460; }
+.status-preparing { background:#cce5ff; color:#004085; }
+.status-completed { background:#d4edda; color:#155724; }
+
+/* =========================
+   Modal
+========================= */
+#qrModal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.65);
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+}
+#qrModalContent {
+    background: #fff;
+    padding: 30px 35px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 6px 25px rgba(0,0,0,0.1);
+}
+#qrModalContent img { max-width: 250px; margin-bottom: 15px; }
+#qrModalContent button { background:#28a745; color:#fff; border:none; padding:8px 16px; border-radius:8px; font-weight:600; }
+#qrModalContent button:hover { background:#218838; }
+
+/* =========================
+   Empty Messages
+========================= */
+#emptyMsg {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 16px;
+    color: #777;
+}
+
+/* =========================
+   Footer
+========================= */
+footer {
+    text-align: center;
+    padding: 15px 0;
+    background: #ff4d4d;
+    color: #fff;
+    margin-top: 50px;
+    border-radius: 12px 12px 0 0;
+}
+
+/* =========================
+   Responsive
+========================= */
+@media (max-width: 768px) {
+    table, thead, tbody, th, td, tr { display: block; }
+    thead tr { display: none; }
+    tbody tr { margin-bottom: 15px; background: #f1f1f1; padding: 10px; border-radius: 12px; }
+    tbody td { text-align: right; padding-left: 50%; position: relative; }
+    tbody td::before { content: attr(data-label); position: absolute; left: 15px; width: 45%; font-weight: 600; text-align: left; }
+}

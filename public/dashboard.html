@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin Dashboard - Canteen</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+body { font-family: Arial, sans-serif; background:#f8f8f8; padding:20px; }
+h1 { color:#ff4d4d; text-align:center; margin-bottom:20px; }
+.container { max-width:1200px; margin:auto; background:#fff; padding:20px; border-radius:12px; box-shadow:0 6px 25px rgba(0,0,0,0.1); }
+
+button { padding:6px 12px; border:none; border-radius:5px; cursor:pointer; font-size:14px; margin:2px; }
+.add-btn { background-color:#28a745; color:white; }
+.remove-btn { background-color:#dc3545; color:white; }
+.update-btn { background-color:#007bff; color:white; }
+
+.flex { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+.flex > * { flex:1 1 150px; }
+
+table { width:100%; border-collapse: collapse; margin-top:10px; }
+th, td { border:1px solid #ddd; padding:12px; text-align:center; word-break: break-word; }
+th { background-color:#ff4d4d; color:#fff; }
+
+@media (max-width:768px){
+    table, thead, tbody, th, td, tr { display:block; }
+    thead tr { display:none; }
+    tbody tr { margin-bottom:15px; background:#f1f1f1; padding:10px; border-radius:8px; }
+    tbody td { text-align:right; padding-left:50%; position:relative; }
+    tbody td::before { content: attr(data-label); position:absolute; left:15px; width:45%; font-weight:bold; text-align:left; }
+}
+
+.top-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; }
+.top-bar button { background:#28a745; color:#fff; padding:6px 12px; border-radius:5px; cursor:pointer; }
+.income { font-weight:bold; font-size:16px; margin-left:10px; color:#007bff; }
+</style>
+</head>
+<body>
+
+<div class="container">
+<h1>Admin Dashboard</h1>
+
+<div class="top-bar">
+  <div>
+    <button id="openShop">Open Shop</button>
+    <button id="closeShop">Close Shop</button>
+    <button id="toggleOrders">Pause Orders</button>
+  </div>
+  <div>
+    <strong>Shop Status:</strong> <span id="shopStatus">Loading...</span>
+    <span class="income" id="todaysIncome">Today's Income: ₹0</span>
+  </div>
+</div>
+
+<!-- Add Menu Item -->
+<section>
+    <h2>Add New Menu Item</h2>
+    <div class="flex">
+        <input type="text" id="itemName" placeholder="Item Name">
+        <input type="number" id="itemPrice" placeholder="Price">
+        <button class="add-btn" id="addItemBtn">Add Item</button>
+    </div>
+</section>
+
+<!-- Existing Menu Items -->
+<section>
+    <h2>Existing Menu Items</h2>
+    <table id="menuTable">
+        <thead>
+            <tr><th>Name</th><th>Price (₹)</th><th>Actions</th></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</section>
+
+<!-- Orders -->
+<section>
+    <h2>Orders</h2>
+    <table id="ordersTable">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Student Name</th>
+                <th>Email</th>
+                <th>Items</th>
+                <th>Total (₹)</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</section>
+</div>
+
+<script>
+let shopStatus = { isOpen:false, acceptingOrders:true };
+let usersMap = {};
+
+// Update shop status display
+function updateShopStatusDisplay(){
+    const statusText = !shopStatus.isOpen ? "Closed" : (shopStatus.acceptingOrders ? "Open & Accepting Orders" : "Open but Orders Paused");
+    document.getElementById("shopStatus").textContent = statusText;
+    document.getElementById("toggleOrders").textContent = shopStatus.acceptingOrders ? "Pause Orders" : "Resume Orders";
+    document.getElementById("toggleOrders").style.display = shopStatus.isOpen ? "inline-block" : "none";
+}
+
+// Load users map
+async function loadUsersMap(){
+    const res = await fetch("/users.json");
+    const users = await res.json();
+    usersMap = {};
+    users.forEach(u=> usersMap[u.email] = u.name);
+}
+
+// Load menu
+async function loadMenu(){
+    const res = await fetch("/menu");
+    const menu = await res.json();
+    const tbody = document.querySelector("#menuTable tbody");
+    tbody.innerHTML="";
+    menu.forEach(item=>{
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td data-label="Name"><input type="text" value="${item.name}" data-id="${item.id}" class="edit-name"></td>
+            <td data-label="Price"><input type="number" value="${item.price}" data-id="${item.id}" class="edit-price"></td>
+            <td data-label="Actions">
+                <button class="update-btn" data-id="${item.id}">Update</button>
+                <button class="remove-btn" data-id="${item.id}">Remove</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// Load orders and calculate today's income
+async function loadOrders(){
+    await loadUsersMap();
+    const res = await fetch("/admin/orders");
+    const orders = await res.json();
+    const tbody = document.querySelector("#ordersTable tbody");
+    tbody.innerHTML = "";
+    const today = new Date().toISOString().slice(0,10);
+    let todayIncome = 0;
+    orders.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+    orders.forEach((order,index)=>{
+        const orderDate = order.createdAt.slice(0,10);
+        if(orderDate === today && order.status==="Paid") todayIncome += order.totalAmount;
+        const studentName = usersMap[order.email] || "Unknown";
+        const tr = document.createElement("tr");
+        tr.innerHTML=`
+            <td>${index+1}</td>
+            <td data-label="Student Name">${studentName}</td>
+            <td data-label="Email">${order.email}</td>
+            <td data-label="Items">${order.items.map(i=>i.name+"(₹"+i.price+")").join(", ")}</td>
+            <td data-label="Total">₹${order.totalAmount}</td>
+            <td data-label="Status">
+                <select class="status-select" data-id="${order.id}">
+                    <option value="Pending" ${order.status==="Pending"?"selected":""}>Pending</option>
+                    <option value="Preparing" ${order.status==="Preparing"?"selected":""}>Preparing</option>
+                    <option value="Completed" ${order.status==="Completed"?"selected":""}>Completed</option>
+                    <option value="Paid" ${order.status==="Paid"?"selected":""}>Paid</option>
+                </select>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+    document.getElementById("todaysIncome").textContent = `Today's Income: ₹${todayIncome}`;
+}
+
+// SSE for live updates
+const eventSource = new EventSource("/admin/orders/stream");
+eventSource.onmessage = e => {
+    const data = JSON.parse(e.data);
+    shopStatus = data.shopStatus || shopStatus;
+    updateShopStatusDisplay();
+    loadOrders();
+};
+
+// Menu actions
+document.getElementById("addItemBtn").addEventListener("click", async ()=>{
+    const name = document.getElementById("itemName").value.trim();
+    const price = document.getElementById("itemPrice").value.trim();
+    if(!name || !price){ alert("Enter name & price"); return; }
+    await fetch("/menu/add",{method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({name, price})});
+    document.getElementById("itemName").value="";
+    document.getElementById("itemPrice").value="";
+    loadMenu();
+});
+
+document.querySelector("#menuTable tbody").addEventListener("click", async e=>{
+    const id = e.target.dataset.id;
+    if(e.target.classList.contains("remove-btn")){
+        await fetch("/menu/remove",{method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id})});
+        loadMenu();
+    } else if(e.target.classList.contains("update-btn")){
+        const name = document.querySelector(`.edit-name[data-id="${id}"]`).value;
+        const price = document.querySelector(`.edit-price[data-id="${id}"]`).value;
+        await fetch("/menu/remove",{method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id})});
+        await fetch("/menu/add",{method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({name, price})});
+        loadMenu();
+    }
+});
+
+// Auto-update order status when changed
+document.querySelector("#ordersTable tbody").addEventListener("change", async e=>{
+    if(e.target.classList.contains("status-select")){
+        const id = e.target.dataset.id;
+        const status = e.target.value;
+        await fetch("/admin/order/update",{method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({orderId:id,status})});
+        loadOrders();
+    }
+});
+
+// Shop buttons
+document.getElementById("openShop").addEventListener("click", ()=>toggleShop("open"));
+document.getElementById("closeShop").addEventListener("click", ()=>toggleShop("close"));
+document.getElementById("toggleOrders").addEventListener("click", ()=>toggleShop(shopStatus.acceptingOrders ? "pause" : "resume"));
+
+async function toggleShop(action){
+    await fetch("/shop/toggle", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({action})
+    });
+    const res = await fetch("/shop/status");
+    shopStatus = await res.json();
+    updateShopStatusDisplay();
+}
+
+// Auto-refresh every 5s
+setInterval(()=>{ 
+    loadOrders(); 
+    fetch("/shop/status").then(r=>r.json()).then(s=>{shopStatus=s;updateShopStatusDisplay();}); 
+},5000);
+
+// Initial load
+loadMenu();
+loadOrders();
+updateShopStatusDisplay();
+</script>
+
+</body>
+</html>
