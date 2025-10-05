@@ -100,19 +100,20 @@ let currentOrderId = null;
 document.getElementById("checkoutBtn").addEventListener("click", async ()=>{
     if(cart.length===0){ alert("Cart is empty."); return; }
     try{
-        const res = await fetch("/order", {
+        const res = await fetch("/order/initiate", {
             method:"POST",
             headers:{"Content-Type":"application/json"},
             body:JSON.stringify({email:userEmail, items:cart})
         });
         const data = await res.json();
         if(res.ok){
-            currentOrderId = data.orderId;
+            currentOrderId = data.order.id;
             document.getElementById("cartSection").style.display="none";
             document.getElementById("qrSection").style.display="block";
             document.getElementById("qrCode").src = data.qrCode;
         } else alert(data.msg || "Error generating QR.");
-    } catch {
+    } catch (err){
+        console.error(err);
         alert("⚠️ Server error while placing order.");
     }
 });
@@ -124,7 +125,12 @@ document.getElementById("confirmBtn").addEventListener("click", async ()=>{
         const res = await fetch("/order/confirm", {
             method:"POST",
             headers:{"Content-Type":"application/json"},
-            body: JSON.stringify({ orderId: currentOrderId, email: userEmail })
+            body: JSON.stringify({
+                orderId: currentOrderId,
+                email: userEmail,
+                items: cart,
+                totalAmount: parseFloat(document.getElementById("total").innerText)
+            })
         });
         const data = await res.json();
         if(res.ok){
@@ -132,7 +138,8 @@ document.getElementById("confirmBtn").addEventListener("click", async ()=>{
             alert("✅ Payment confirmed! Redirecting to home page...");
             window.location.href = data.redirect;
         } else alert(data.msg || "Payment not confirmed.");
-    } catch {
+    } catch (err){
+        console.error(err);
         alert("⚠️ Server error while confirming payment.");
     }
 });
